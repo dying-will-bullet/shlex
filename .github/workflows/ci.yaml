@@ -1,0 +1,26 @@
+name: CI
+
+on:
+  push:
+    branches: ["master"]
+  pull_request:
+    branches: ["master"]
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: Tests on Linux
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: mlugg/setup-zig@v2
+        with:
+          version: 0.14.1
+      - run: zig version
+      - run: zig env
+      - run: ls
+      - run: ls zig-cache || echo 'no zig-cache'
+      - name: Build
+        run: zig build --verbose
+      - name: Run Tests
+        run: zig build test
