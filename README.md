@@ -1,10 +1,11 @@
 # shlex
 
+[![CI](https://github.com/dying-will-bullet/shlex/actions/workflows/ci.yaml/badge.svg)](https://github.com/dying-will-bullet/shlex/actions/workflows/ci.yaml)
+![](https://img.shields.io/badge/language-zig-%23ec915c)
+
 A lexical analyzer for simple shell-like syntaxes implemented in Zig. This library provides functions to split, join, and quote strings using shell-like parsing rules.
 
-
 Ported from the Python standard library. https://github.com/python/cpython/blob/main/Lib/shlex.py
-
 
 ## Features
 
