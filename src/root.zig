@@ -428,6 +428,7 @@ pub fn Shlex(comptime options: ShlexOptions) type {
 
             try self.token_buffer.append(c);
             self.lexer_state.state = self.lexer_state.escaped_state;
+            self.lexer_state.escaped_state = .initial; // Reset escaped_state
             return .continue_parsing;
         }
 
@@ -557,7 +558,13 @@ pub fn Shlex(comptime options: ShlexOptions) type {
                 }
 
                 if (options.debug >= 3) {
-                    std.debug.print("shlex: character seen in state {any}: {any}\n", .{ self.lexer_state.state, nextchar });
+                    std.debug.print("shlex: character seen in state {any}/{any}: {any} (ASCII: {any})\n", .{ self.lexer_state.state, self.lexer_state.escaped_state, nextchar, if (nextchar) |c| c else 0 });
+                    std.debug.print("  token_buffer: \"{s}\"\n", .{self.token_buffer.items});
+                    std.debug.print("  pushback_chars: {any}\n", .{self.pushback_chars.items});
+                    std.debug.print("  pushback_tokens: {any}\n", .{self.pushback_tokens.items});
+                    if (nextchar) |c| {
+                        std.debug.print("  char properties: wordchar={}, whitespace={}, punct={}, quote={}, escape={}, comment={}\n", .{ char_sets.wordchars.contains(c), char_sets.whitespace.contains(c), char_sets.punctuation_chars.contains(c), char_sets.quotes.contains(c), char_sets.escape.contains(c), char_sets.commenters.contains(c) });
+                    }
                 }
 
                 const action = switch (self.lexer_state.state) {
@@ -581,8 +588,16 @@ pub fn Shlex(comptime options: ShlexOptions) type {
 
                 if (action) |act| {
                     switch (act) {
-                        .continue_parsing => continue,
+                        .continue_parsing => {
+                            if (options.debug >= 3) {
+                                std.debug.print("  -> continue_parsing, new state: {any}/{any}\n", .{ self.lexer_state.state, self.lexer_state.escaped_state });
+                            }
+                            continue;
+                        },
                         .finish_token => {
+                            if (options.debug >= 3) {
+                                std.debug.print("  -> finish_token, new state: {any}/{any}\n", .{ self.lexer_state.state, self.lexer_state.escaped_state });
+                            }
                             if (self.token_buffer.items.len > 0 or (options.posix and quoted)) {
                                 break;
                             }
@@ -696,4 +711,3 @@ pub fn join(allocator: Allocator, split_command: []const []const u8) ![]const u8
 
     return result.toOwnedSlice();
 }
-
