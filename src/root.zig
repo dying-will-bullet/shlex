@@ -206,9 +206,9 @@ pub fn Shlex(comptime options: ShlexOptions) type {
                 .allocator = allocator,
                 .input_buffer = input,
                 .lexer_state = .{},
-                .token_buffer = ArrayList(u8).init(allocator),
-                .pushback_tokens = ArrayList([]const u8).init(allocator),
-                .pushback_chars = ArrayList(u8).init(allocator),
+                .token_buffer = ArrayList(u8){},
+                .pushback_tokens = ArrayList([]const u8){},
+                .pushback_chars = ArrayList(u8){},
             };
         }
 
@@ -216,9 +216,9 @@ pub fn Shlex(comptime options: ShlexOptions) type {
             for (self.pushback_tokens.items) |token| {
                 self.allocator.free(token);
             }
-            self.pushback_tokens.deinit();
-            self.pushback_chars.deinit();
-            self.token_buffer.deinit();
+            self.pushback_tokens.deinit(self.allocator);
+            self.pushback_chars.deinit(self.allocator);
+            self.token_buffer.deinit(self.allocator);
         }
 
         /// Reset lexer state to parse new input
@@ -261,7 +261,7 @@ pub fn Shlex(comptime options: ShlexOptions) type {
             if (options.debug >= 1) {
                 std.debug.print("shlex: push token {s}\n", .{token});
             }
-            try self.pushback_tokens.insert(0, token);
+            try self.pushback_tokens.insert(self.allocator, 0, token);
         }
 
         fn popToken(self: *Self) ?[]const u8 {
@@ -272,7 +272,7 @@ pub fn Shlex(comptime options: ShlexOptions) type {
         }
 
         fn pushChar(self: *Self, char: u8) !void {
-            try self.pushback_chars.insert(0, char);
+            try self.pushback_chars.insert(self.allocator, 0, char);
         }
 
         fn popChar(self: *Self) ?u8 {
@@ -323,14 +323,14 @@ pub fn Shlex(comptime options: ShlexOptions) type {
 
             if (char_sets.wordchars.contains(c)) {
                 self.token_buffer.clearRetainingCapacity();
-                try self.token_buffer.append(c);
+                try self.token_buffer.append(self.allocator, c);
                 self.lexer_state.state = .word;
                 return .continue_parsing;
             }
 
             if (char_sets.punctuation_chars.contains(c)) {
                 self.token_buffer.clearRetainingCapacity();
-                try self.token_buffer.append(c);
+                try self.token_buffer.append(self.allocator, c);
                 self.lexer_state.state = .punctuation;
                 return .continue_parsing;
             }
@@ -338,7 +338,7 @@ pub fn Shlex(comptime options: ShlexOptions) type {
             if (c == '\'') {
                 if (!options.posix) {
                     self.token_buffer.clearRetainingCapacity();
-                    try self.token_buffer.append(c);
+                    try self.token_buffer.append(self.allocator, c);
                 }
                 self.lexer_state.state = .single_quoted;
                 return .continue_parsing;
@@ -347,7 +347,7 @@ pub fn Shlex(comptime options: ShlexOptions) type {
             if (c == '"') {
                 if (!options.posix) {
                     self.token_buffer.clearRetainingCapacity();
-                    try self.token_buffer.append(c);
+                    try self.token_buffer.append(self.allocator, c);
                 }
                 self.lexer_state.state = .double_quoted;
                 return .continue_parsing;
@@ -355,14 +355,14 @@ pub fn Shlex(comptime options: ShlexOptions) type {
 
             if (options.whitespace_split) {
                 self.token_buffer.clearRetainingCapacity();
-                try self.token_buffer.append(c);
+                try self.token_buffer.append(self.allocator, c);
                 self.lexer_state.state = .word;
                 return .continue_parsing;
             }
 
             // default case
             self.token_buffer.clearRetainingCapacity();
-            try self.token_buffer.append(c);
+            try self.token_buffer.append(self.allocator, c);
             if (self.token_buffer.items.len > 0) {
                 return .finish_token;
             }
@@ -381,7 +381,7 @@ pub fn Shlex(comptime options: ShlexOptions) type {
 
             if (c == quote_char) {
                 if (!options.posix) {
-                    try self.token_buffer.append(c);
+                    try self.token_buffer.append(self.allocator, c);
                     self.lexer_state.state = .initial;
                     return .finish_token;
                 } else {
@@ -397,7 +397,7 @@ pub fn Shlex(comptime options: ShlexOptions) type {
                 return .continue_parsing;
             }
 
-            try self.token_buffer.append(c);
+            try self.token_buffer.append(self.allocator, c);
             return .continue_parsing;
         }
 
@@ -415,18 +415,18 @@ pub fn Shlex(comptime options: ShlexOptions) type {
             switch (self.lexer_state.escaped_state) {
                 .single_quoted => {
                     if (c != '\\' and c != '\'') {
-                        try self.token_buffer.append('\\');
+                        try self.token_buffer.append(self.allocator, '\\');
                     }
                 },
                 .double_quoted => {
                     if (c != '\\' and c != '"') {
-                        try self.token_buffer.append('\\');
+                        try self.token_buffer.append(self.allocator, '\\');
                     }
                 },
                 else => {},
             }
 
-            try self.token_buffer.append(c);
+            try self.token_buffer.append(self.allocator, c);
             self.lexer_state.state = self.lexer_state.escaped_state;
             self.lexer_state.escaped_state = .initial; // Reset escaped_state
             return .continue_parsing;
@@ -478,7 +478,7 @@ pub fn Shlex(comptime options: ShlexOptions) type {
                 char_sets.quotes.contains(c) or
                 (options.whitespace_split and !char_sets.punctuation_chars.contains(c)))
             {
-                try self.token_buffer.append(c);
+                try self.token_buffer.append(self.allocator, c);
                 return .continue_parsing;
             }
 
@@ -507,7 +507,7 @@ pub fn Shlex(comptime options: ShlexOptions) type {
             const c = char.?;
 
             if (char_sets.punctuation_chars.contains(c)) {
-                try self.token_buffer.append(c);
+                try self.token_buffer.append(self.allocator, c);
                 return .continue_parsing;
             }
 
@@ -659,14 +659,14 @@ pub fn split(
     var lex = try ShlexType.init(allocator, s);
     defer lex.deinit();
 
-    var result = ArrayList([]const u8).init(allocator);
+    var result = ArrayList([]const u8){};
     while (true) {
         const token = try lex.getToken();
         if (token == null) break;
-        try result.append(token.?);
+        try result.append(allocator, token.?);
     }
 
-    return result.toOwnedSlice();
+    return result.toOwnedSlice(allocator);
 }
 
 pub fn quote(allocator: Allocator, s: []const u8) ![]const u8 {
@@ -676,20 +676,20 @@ pub fn quote(allocator: Allocator, s: []const u8) ![]const u8 {
 
     for (s) |char| {
         if (char >= 128 or !std.mem.containsAtLeast(u8, QUOTE_SAFE_CHARS, 1, &[_]u8{char})) {
-            var result = ArrayList(u8).init(allocator);
-            defer result.deinit();
+            var result = ArrayList(u8){};
+            defer result.deinit(allocator);
 
-            try result.append('\'');
+            try result.append(allocator, '\'');
             for (s) |c| {
                 if (c == '\'') {
-                    try result.appendSlice("'\"'\"'");
+                    try result.appendSlice(allocator, "'\"'\"'");
                 } else {
-                    try result.append(c);
+                    try result.append(allocator, c);
                 }
             }
-            try result.append('\'');
+            try result.append(allocator, '\'');
 
-            return result.toOwnedSlice();
+            return result.toOwnedSlice(allocator);
         }
     }
 
@@ -697,17 +697,17 @@ pub fn quote(allocator: Allocator, s: []const u8) ![]const u8 {
 }
 
 pub fn join(allocator: Allocator, split_command: []const []const u8) ![]const u8 {
-    var result = ArrayList(u8).init(allocator);
-    defer result.deinit();
+    var result = ArrayList(u8){};
+    defer result.deinit(allocator);
 
     for (split_command, 0..) |arg, i| {
         if (i > 0) {
-            try result.append(' ');
+            try result.append(allocator, ' ');
         }
         const quoted_arg = try quote(allocator, arg);
         defer allocator.free(quoted_arg);
-        try result.appendSlice(quoted_arg);
+        try result.appendSlice(allocator, quoted_arg);
     }
 
-    return result.toOwnedSlice();
+    return result.toOwnedSlice(allocator);
 }
