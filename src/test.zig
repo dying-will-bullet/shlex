@@ -240,18 +240,18 @@ test "punctuation chars splitting" {
         var lex = try shlex.init(allocator, test_case.input, .{ .punctuation_chars = .enabled });
         defer lex.deinit();
 
-        var result = ArrayList([]const u8).init(allocator);
+        var result = ArrayList([]const u8){};
         defer {
             for (result.items) |token| {
                 allocator.free(token);
             }
-            result.deinit();
+            result.deinit(allocator);
         }
 
         while (true) {
             const token = try lex.getToken();
             if (token == null) break;
-            try result.append(token.?);
+            try result.append(allocator, token.?);
         }
 
         if (result.items.len != test_case.expected.len) {
@@ -395,18 +395,18 @@ test "empty string handling" {
             var lex = try shlex.init(allocator, test_case.input, .{ .posix = true, .whitespace_split = true });
             defer lex.deinit();
 
-            var result = ArrayList([]const u8).init(allocator);
+            var result = ArrayList([]const u8){};
             defer {
                 for (result.items) |token| {
                     allocator.free(token);
                 }
-                result.deinit();
+                result.deinit(allocator);
             }
 
             while (true) {
                 const token = try lex.getToken();
                 if (token == null) break;
-                try result.append(token.?);
+                try result.append(allocator, token.?);
             }
 
             if (result.items.len != test_case.expected.len) {
@@ -426,18 +426,18 @@ test "empty string handling" {
             var lex = try shlex.init(allocator, test_case.input, .{ .posix = false, .whitespace_split = true });
             defer lex.deinit();
 
-            var result = ArrayList([]const u8).init(allocator);
+            var result = ArrayList([]const u8){};
             defer {
                 for (result.items) |token| {
                     allocator.free(token);
                 }
-                result.deinit();
+                result.deinit(allocator);
             }
 
             while (true) {
                 const token = try lex.getToken();
                 if (token == null) break;
-                try result.append(token.?);
+                try result.append(allocator, token.?);
             }
 
             if (result.items.len != test_case.expected.len) {
@@ -476,4 +476,3 @@ test "basic shlex functionality" {
     try testing.expectEqualStrings("quoted string", result[2]);
     try testing.expectEqualStrings("double quoted", result[3]);
 }
-

@@ -7,6 +7,8 @@ A lexical analyzer for simple shell-like syntaxes implemented in Zig. This libra
 
 Ported from the Python standard library. https://github.com/python/cpython/blob/main/Lib/shlex.py
 
+**NOTE: Supported Zig Version is v0.15.1**
+
 ## Features
 
 - Split strings using shell-like tokenization rules
