@@ -240,7 +240,7 @@ test "punctuation chars splitting" {
         var lex = try shlex.init(allocator, test_case.input, .{ .punctuation_chars = .enabled });
         defer lex.deinit();
 
-        var result = ArrayList([]const u8){};
+        var result: ArrayList([]const u8) = .empty;
         defer {
             for (result.items) |token| {
                 allocator.free(token);
@@ -395,7 +395,7 @@ test "empty string handling" {
             var lex = try shlex.init(allocator, test_case.input, .{ .posix = true, .whitespace_split = true });
             defer lex.deinit();
 
-            var result = ArrayList([]const u8){};
+            var result: ArrayList([]const u8) = .empty;
             defer {
                 for (result.items) |token| {
                     allocator.free(token);
@@ -426,7 +426,7 @@ test "empty string handling" {
             var lex = try shlex.init(allocator, test_case.input, .{ .posix = false, .whitespace_split = true });
             defer lex.deinit();
 
-            var result = ArrayList([]const u8){};
+            var result: ArrayList([]const u8) = .empty;
             defer {
                 for (result.items) |token| {
                     allocator.free(token);
