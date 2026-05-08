@@ -7,7 +7,9 @@ A lexical analyzer for simple shell-like syntaxes implemented in Zig. This libra
 
 Ported from the Python standard library. https://github.com/python/cpython/blob/main/Lib/shlex.py
 
-**NOTE: Supported Zig Version is v0.15.1 and v0.15.2**
+**NOTE**
+- `master` branch: supported Zig Version is v0.16.0
+- `v0.1.1` tag: supported Zig Version is v0.15.2
 
 ## Features
 
@@ -24,12 +26,10 @@ Split a string into tokens using shell-like rules.
 
 ```zig
 const std = @import("std");
-const shlex = @import("shlex");
+const shlex = @import("shlex_lib");
 
-pub fn main() !void {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    defer _ = gpa.deinit();
-    const allocator = gpa.allocator();
+pub fn main(init: std.process.Init) !void {
+    const allocator = init.gpa;
 
     const input = "hello world 'quoted string'";
     const tokens = try shlex.split(allocator, input, false, true);
@@ -58,12 +58,10 @@ Quote a string for safe shell usage.
 
 ```zig
 const std = @import("std");
-const shlex = @import("shlex");
+const shlex = @import("shlex_lib");
 
-pub fn main() !void {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    defer _ = gpa.deinit();
-    const allocator = gpa.allocator();
+pub fn main(init: std.process.Init) !void {
+    const allocator = init.gpa;
 
     const input = "can't do it";
     const quoted = try shlex.quote(allocator, input);
@@ -83,12 +81,10 @@ Join an array of strings with proper quoting.
 
 ```zig
 const std = @import("std");
-const shlex = @import("shlex");
+const shlex = @import("shlex_lib");
 
-pub fn main() !void {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    defer _ = gpa.deinit();
-    const allocator = gpa.allocator();
+pub fn main(init: std.process.Init) !void {
+    const allocator = init.gpa;
 
     const args = [_][]const u8{ "echo", "hello world", "can't" };
     const joined = try shlex.join(allocator, &args);
@@ -108,7 +104,7 @@ Parameters:
 For more advanced usage, you can create a lexer instance with custom options:
 
 ```zig
-const lexer = try shlex.init(allocator, input, .{
+var lexer = try shlex.init(allocator, input, .{
     .posix = true,
     .punctuation_chars = .enabled,
     .whitespace_split = true,
@@ -122,6 +118,7 @@ while (true) {
     // Process token
     allocator.free(token.?);
 }
+
 ```
 
 ## License
