@@ -206,9 +206,9 @@ pub fn Shlex(comptime options: ShlexOptions) type {
                 .allocator = allocator,
                 .input_buffer = input,
                 .lexer_state = .{},
-                .token_buffer = ArrayList(u8){},
-                .pushback_tokens = ArrayList([]const u8){},
-                .pushback_chars = ArrayList(u8){},
+                .token_buffer = .empty,
+                .pushback_tokens = .empty,
+                .pushback_chars = .empty,
             };
         }
 
@@ -659,7 +659,7 @@ pub fn split(
     var lex = try ShlexType.init(allocator, s);
     defer lex.deinit();
 
-    var result = ArrayList([]const u8){};
+    var result: ArrayList([]const u8) = .empty;
     while (true) {
         const token = try lex.getToken();
         if (token == null) break;
@@ -676,7 +676,7 @@ pub fn quote(allocator: Allocator, s: []const u8) ![]const u8 {
 
     for (s) |char| {
         if (char >= 128 or !std.mem.containsAtLeast(u8, QUOTE_SAFE_CHARS, 1, &[_]u8{char})) {
-            var result = ArrayList(u8){};
+            var result: ArrayList(u8) = .empty;
             defer result.deinit(allocator);
 
             try result.append(allocator, '\'');
@@ -697,7 +697,7 @@ pub fn quote(allocator: Allocator, s: []const u8) ![]const u8 {
 }
 
 pub fn join(allocator: Allocator, split_command: []const []const u8) ![]const u8 {
-    var result = ArrayList(u8){};
+    var result: ArrayList(u8) = .empty;
     defer result.deinit(allocator);
 
     for (split_command, 0..) |arg, i| {
