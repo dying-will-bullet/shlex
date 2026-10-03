@@ -95,7 +95,7 @@ const LexerState = struct {
 };
 
 const StaticCharSet = struct {
-    bitset: std.bit_set.StaticBitSet(256) = std.bit_set.StaticBitSet(256).initEmpty(),
+    bitset: std.bit_set.Static(256) = std.bit_set.Static(256).empty,
 
     const Self = @This();
 
